@@ -1,6 +1,6 @@
 # 🧠 SmartTask
 
-SmartTask is a lightweight, full-stack task manager built with **Spring Boot**, **MySQL**, and **HTML**. It helps you quickly manage tasks and tackle indecisiveness via OpenAI API integration and a simple and intuitive web interface — click to mark as done, click again to delete.
+SmartTask is a lightweight, full-stack task manager built with **Spring Boot**, **MySQL**, and **JS/HTML/CSS**. It helps you quickly manage tasks and tackle indecisiveness via OpenAI API integration and a simple and intuitive web interface — click to mark as done, click again to delete.
 
 ---
 
