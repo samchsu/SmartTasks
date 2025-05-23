@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Smart Task Manager</title>
+	<style>
+		.task-item {
+		cursor: pointer;
+		}
+	</style>
+</head>
+<body>
+	<h2>SmartTasks</h2>
+	<input type="text" id="taskInput" placeholder="e.g. Finish project by 5PM" />
+	<button onclick="submitTask()">Submit</button>
+	<button onclick="deleteAllTasks()">Clear All Tasks</button>
+	<pre id="response"></pre>
+
+	<h2>Tasks</h2>
+	<ol id="tasksList"></ol>
+
+	<script>
+		// Fetch tasks and render them in the list
+		async function fetchTasks() {
+			const res = await fetch('/tasks');
+			const tasks = await res.json();
+
+			const list = document.getElementById('tasksList');
+			list.innerHTML = '';
+
+			tasks.forEach(task => {
+				const li = document.createElement('li');
+				li.textContent = task.description;
+				li.dataset.id = task.id;
+				li.className = 'task-item';
+				// li.onclick = () => deleteTask(task.id);
+				list.appendChild(li);
+			});
+		}
+
+		// Delete a task by id
+		async function deleteTask(id) {
+			const response = await fetch(`/tasks/${id}`, { method: 'DELETE' });
+			if (response.ok) {
+        		fetchTasks();
+			} else {
+			alert('Failed to delete task');
+			}
+		}
+		
+		document.getElementById('tasksList').addEventListener('click', (e) => {
+			const target = e.target;
+			if (target.classList.contains('task-item')) {
+				const taskId = target.dataset.id;
+				deleteTask(taskId);
+			}
+		});
+
+		async function submitTask() {
+			const input = document.getElementById('taskInput').value;
+      		if (!input) return alert('Enter a task description');
+
+			const res = await fetch('/tasks', {
+				method: 'POST',
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({ input }),
+			});
+
+			if (res.ok) {
+				document.getElementById('taskInput').value = '';
+				fetchTasks();
+			} else {
+				alert('Failed to add task');
+			}
+		}
+
+		async function deleteAllTasks() {
+			if (!confirm("Are you sure you want to delete ALL tasks?")) return;
+
+			const response = await fetch('/tasks/all', { method: 'DELETE' });
+			if (response.ok) {
+				fetchTasks();  // refresh task list after delete all
+			} else {
+				alert('Failed to delete all tasks');
+			}
+		}
+		
+		fetchTasks();
+	</script>
+</body>
+</html>
