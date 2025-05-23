@@ -1,26 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<meta charset="UTF-8">
+	<meta charset="UTF-8" />
 	<title>Smart Task Manager</title>
 	<style>
 		.task-item {
-		cursor: pointer;
+			cursor: pointer;
 		}
 	</style>
+	<script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-	<h2>SmartTasks</h2>
-	<input type="text" id="taskInput" placeholder="e.g. Finish project by 5PM" />
-	<button onclick="submitTask()">Submit</button>
-	<button onclick="deleteAllTasks()">Clear All Tasks</button>
+<body class="bg-gray-100 text-center font-sans">
+	<h2 class="text-2xl font-bold mt-8 mb-4">SmartTasks</h2>
+	<input class="border p-2 rounded w-1/2" type="text" id="taskInput" placeholder="e.g. Finish project by 5PM"/>
+	<button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="submitTask()">
+		Generate Tasks
+	</button>
+	<button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600" onclick="deleteAllTasks()">
+		Clear All Tasks
+	</button>
 	<pre id="response"></pre>
 
 	<h2>Tasks</h2>
-	<ol id="tasksList"></ol>
+	<ol class="list-decimal text-left max-w-xl mx-auto mt-6" id="tasksList"></ol>
 
 	<script>
-		// Fetch tasks and render them in the list
+		// Keep track of completed (struck-through) tasks with their Ids
+		const completedTasks = new Set();
+
+		// Fetch tasks and render them
 		async function fetchTasks() {
 			const res = await fetch('/tasks');
 			const tasks = await res.json();
@@ -28,41 +36,70 @@
 			const list = document.getElementById('tasksList');
 			list.innerHTML = '';
 
-			tasks.forEach(task => {
+			tasks.forEach((task) => {
 				const li = document.createElement('li');
-				li.textContent = task.description;
 				li.dataset.id = task.id;
-				li.className = 'task-item';
-				// li.onclick = () => deleteTask(task.id);
+				li.className = 'task-item flex justify-between items-center py-1';
+
+				const span = document.createElement('span');
+				span.textContent = task.description;
+				span.className = 'flex-1 cursor-pointer';
+
+				// If task is marked completed, add styles
+				if (completedTasks.has(task.id)) {
+					span.classList.add('line-through', 'text-red-500');
+				}
+
+				const deleteBtn = document.createElement('button');
+				deleteBtn.innerHTML = '❌';
+				// Show delete button only if completed
+				deleteBtn.className = completedTasks.has(task.id)
+					? 'ml-4 text-red-500 hover:text-red-700'
+					: 'ml-4 hidden text-red-500 hover:text-red-700';
+
+				deleteBtn.onclick = (e) => {
+					e.stopPropagation(); // prevent toggling strikethrough
+					deleteTask(task.id);
+					completedTasks.delete(task.id); // Remove from completed set
+				};
+
+				li.appendChild(span);
+				li.appendChild(deleteBtn);
 				list.appendChild(li);
+
+				// Toggle completed state and delete button visibility on click
+				span.addEventListener('click', () => {
+					if (completedTasks.has(task.id)) {
+						completedTasks.delete(task.id);
+						span.classList.remove('line-through', 'text-red-500');
+						deleteBtn.classList.add('hidden');
+					} else {
+						completedTasks.add(task.id);
+						span.classList.add('line-through', 'text-red-500');
+						deleteBtn.classList.remove('hidden');
+					}
+				});
 			});
 		}
 
-		// Delete a task by id
+		// Delete task by ID
 		async function deleteTask(id) {
 			const response = await fetch(`/tasks/${id}`, { method: 'DELETE' });
 			if (response.ok) {
-        		fetchTasks();
+				fetchTasks();
 			} else {
-			alert('Failed to delete task');
+				alert('Failed to delete task');
 			}
 		}
-		
-		document.getElementById('tasksList').addEventListener('click', (e) => {
-			const target = e.target;
-			if (target.classList.contains('task-item')) {
-				const taskId = target.dataset.id;
-				deleteTask(taskId);
-			}
-		});
 
+		// Submit a new task
 		async function submitTask() {
 			const input = document.getElementById('taskInput').value;
-      		if (!input) return alert('Enter a task description');
+			if (!input) return alert('Enter a task description');
 
 			const res = await fetch('/tasks', {
 				method: 'POST',
-				headers: {'Content-Type': 'application/json'},
+				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ input }),
 			});
 
@@ -74,17 +111,19 @@
 			}
 		}
 
+		// Delete all tasks with confirmation
 		async function deleteAllTasks() {
-			if (!confirm("Are you sure you want to delete ALL tasks?")) return;
+			if (!confirm('Are you sure you want to delete all tasks?')) return;
 
 			const response = await fetch('/tasks/all', { method: 'DELETE' });
 			if (response.ok) {
-				fetchTasks();  // refresh task list after delete all
+				completedTasks.clear(); // Clear the completed set
+				fetchTasks();
 			} else {
 				alert('Failed to delete all tasks');
 			}
 		}
-		
+
 		fetchTasks();
 	</script>
 </body>
